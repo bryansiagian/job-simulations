@@ -2,11 +2,11 @@
 import json, unittest, datetime
 
 #use the open function to open read the three json files
-with open("./data-1.json","r") as f:
+with open("./data-1.json", "r", encoding="utf-8") as f:
     jsonData1 = json.load(f)
-with open("./data-2.json","r") as f:
+with open("./data-2.json", "r", encoding="utf-8") as f:
     jsonData2 = json.load(f)
-with open("./data-result.json","r") as f:
+with open("./data-result.json", "r", encoding="utf-8") as f:
     jsonExpectedResult = json.load(f)
 
 # convert json data from format 1 to the expected format

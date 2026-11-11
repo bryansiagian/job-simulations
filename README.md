@@ -1,12 +1,38 @@
-# Deloitte Technology Job Simulation: IIoT Telemetry Data Unifier
+# Job Simulations
 
-Solution for **Task 1 (Coding)** of the [Deloitte Australia Technology Job Simulation](https://www.theforage.com/simulations/Deloitte%20Australia/technology-fz0w) on Forage.
+A collection of virtual job simulations I complete on [Forage](https://www.theforage.com/) to practice real-world engineering and technology tasks. Each simulation lives in its own folder with its own README, covering the scenario, the approach, and the key technical decisions.
 
-## Scenario
+## Simulations
+
+| # | Simulation | Company | Focus | Status |
+|---|---|---|---|---|
+| 1 | [Technology Job Simulation](./deloitte-technology) | Deloitte Australia | Python, JSON data transformation | Completed |
+| 2 | _Coming soon_ | - | - | Planned |
+
+> This table is updated as each simulation is completed.
+
+## Repository structure
+
+```
+.
+├── deloitte-technology/     # Simulation 1: IIoT telemetry data unifier
+│   ├── main.py
+│   ├── data-1.json
+│   ├── data-2.json
+│   ├── data-result.json
+│   └── README.md
+└── README.md
+```
+
+## Simulation 1: Deloitte Australia, Technology
+
+**Task 1 (Coding): IIoT Telemetry Data Unifier.** See the [simulation page](https://www.theforage.com/simulations/Deloitte%20Australia/technology-fz0w) on Forage.
+
+### Scenario
 
 Daikibo Industrials, a global heavy-machinery manufacturer headquartered in Tokyo, is integrating Industrial IoT (IIoT) devices into its factories. Half of the infrastructure streams telemetry in one JSON format, the other half in another. The task is to write a converter that turns both formats into a single unified format.
 
-## What this project does
+### What it does
 
 `main.py` implements two functions:
 
@@ -36,28 +62,18 @@ Both functions return an object identical to `data-result.json`:
 }
 ```
 
-## Project structure
-
-```
-.
-├── main.py            # converters + unit tests
-├── data-1.json        # sample message, format 1
-├── data-2.json        # sample message, format 2
-├── data-result.json   # expected unified output
-└── README.md
-```
-
-## Run
+### Run
 
 Requires Python 3 (standard library only, no dependencies).
 
 ```bash
+cd deloitte-technology
 python main.py
 ```
 
 A successful run reports that all unit tests passed.
 
-## Key decisions
+### Key decisions
 
 - **Timestamp conversion**: ISO 8601 UTC strings are parsed with `datetime` and converted with integer arithmetic against the Unix epoch, which avoids floating-point rounding errors on the milliseconds.
 - **Standard library only**: `json`, `datetime`, and `unittest`.
@@ -69,4 +85,4 @@ A successful run reports that all unit tests passed.
 
 ## Disclaimer
 
-This repository is my submission for an educational virtual job simulation on Forage. It is not affiliated with or endorsed by Deloitte. The scenario, company ("Daikibo Industrials"), and sample data are fictional and provided by the simulation.
+This repository contains my work for educational virtual job simulations hosted on Forage. It is not affiliated with or endorsed by any of the companies mentioned. All scenarios, company names (e.g. "Daikibo Industrials"), and sample data are fictional and provided by the respective simulations.

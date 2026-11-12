@@ -1,13 +1,14 @@
 # Job Simulations
 
-A collection of virtual job simulations I complete on [Forage](https://www.theforage.com/) to practice real-world engineering and technology tasks. Each simulation lives in its own folder with its own README, covering the scenario, the approach, and the key technical decisions.
+A collection of virtual job simulations I complete on [Forage](https://www.theforage.com/) to practice real-world engineering and technology tasks. Each simulation lives in its own folder, covering the scenario, the approach, and the key technical decisions.
 
 ## Simulations
 
 | # | Simulation | Company | Focus | Status |
 |---|---|---|---|---|
 | 1 | [Technology Job Simulation](./deloitte-technology) | Deloitte Australia | Python, JSON data transformation | Completed |
-| 2 | _Coming soon_ | - | - | Planned |
+| 2 | [Modify an Existing .NET Backend](./commonwealth-bank-dotnet) | Commonwealth Bank | C#, .NET 6, MongoDB, REST API | Completed |
+| 3 | _Coming soon_ | - | - | Planned |
 
 > This table is updated as each simulation is completed.
 
@@ -15,12 +16,16 @@ A collection of virtual job simulations I complete on [Forage](https://www.thefo
 
 ```
 .
-├── deloitte-technology/     # Simulation 1: IIoT telemetry data unifier
+├── deloitte-technology/        # Simulation 1: IIoT telemetry data unifier
 │   ├── main.py
 │   ├── data-1.json
 │   ├── data-2.json
 │   ├── data-result.json
 │   └── README.md
+├── commonwealth-bank-dotnet/   # Simulation 2: rSERVER (.NET backend)
+│   ├── CommBank-Server/
+│   ├── CommBank.Tests/
+│   └── goals-response.json
 └── README.md
 ```
 
@@ -79,10 +84,26 @@ A successful run reports that all unit tests passed.
 - **Standard library only**: `json`, `datetime`, and `unittest`.
 - **Single shared target shape**: both converters return the same structure, so downstream consumers never need to know which format a device used.
 
+## Simulation 2: Commonwealth Bank, Modify an Existing .NET Backend
+
+Extends an existing .NET 6 backend (rSERVER, based on [fencer-so/commbank-server](https://github.com/fencer-so/commbank-server)) to support icons on financial goals. The code lives in [`commonwealth-bank-dotnet/`](./commonwealth-bank-dotnet).
+
+### What I did
+
+- Connected the server to a MongoDB Atlas cluster and seeded the `CommBank` database (`Accounts`, `Goals`, `Tags`, `Transactions`, `Users`).
+- Verified the baseline `GET /api/Goal` response with Postman (200 OK, no `icon` field).
+- Added an optional `Icon` string property to the `Goal` model.
+- Added an `Icon` value to each goal document and verified that `GET /api/Goal` now returns `icon` for every goal. The response is saved in [`goals-response.json`](./commonwealth-bank-dotnet/goals-response.json).
+
+### Key decisions
+
+- **Nullable `string? Icon`**: the field is optional, so existing goals without an icon still deserialize and return `"icon": null` instead of failing.
+- **Secrets kept out of version control**: the MongoDB connection string lives in `Secrets.json`, which is listed in `.gitignore` and never committed.
+
 ## Author
 
 **Bryan Torisi Siagian** ([@bryansiagian](https://github.com/bryansiagian))
 
 ## Disclaimer
 
-This repository contains my work for educational virtual job simulations hosted on Forage. It is not affiliated with or endorsed by any of the companies mentioned. All scenarios, company names (e.g. "Daikibo Industrials"), and sample data are fictional and provided by the respective simulations.
+This repository contains my work for educational virtual job simulations hosted on Forage. It is not affiliated with or endorsed by any of the companies mentioned. All scenarios, company names (e.g. "Daikibo Industrials"), and sample data are fictional and provided by the respective simulations. Third-party starter code remains the property of its original authors.

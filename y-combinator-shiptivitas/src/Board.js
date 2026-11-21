@@ -1,132 +1,278 @@
+
 import React from 'react';
 import Dragula from 'dragula';
 import 'dragula/dist/dragula.css';
+
 import Swimlane from './Swimlane';
 import './Board.css';
+
+const API_URL = 'http://localhost:3001/api/v1/clients';
+
+const STATUSES = {
+  backlog: 'backlog',
+  inProgress: 'in-progress',
+  complete: 'complete',
+};
 
 export default class Board extends React.Component {
   constructor(props) {
     super(props);
-    const clients = this.getClients().map(client => ({
-      ...client,
-      status: 'backlog',
-    }));
+
     this.state = {
       clients: {
-        backlog: clients,
+        backlog: [],
         inProgress: [],
         complete: [],
       },
+      loading: true,
+      saving: false,
+      error: null,
     };
+
     this.swimlanes = {
       backlog: React.createRef(),
       inProgress: React.createRef(),
       complete: React.createRef(),
-    }
+    };
+
+    this.drake = null;
+    this.isMountedFlag = false;
+
+    this.handleDrop = this.handleDrop.bind(this);
+    this.fetchClients = this.fetchClients.bind(this);
   }
 
   componentDidMount() {
+    this.isMountedFlag = true;
+
+    // Initialize Dragula for all three swimlanes.
     const containers = [
       this.swimlanes.backlog.current,
       this.swimlanes.inProgress.current,
       this.swimlanes.complete.current,
     ];
 
-    this.drake = Dragula(containers);
-
-    this.drake.on('drop', () => {
-      const laneStatuses = {
-        backlog: 'backlog',
-        inProgress: 'in-progress',
-        complete: 'complete',
-      };
-
-      const allClients = Object.values(this.state.clients)
-        .reduce((result, clients) => result.concat(clients), []);
-
-      const clientsById = new Map(
-        allClients.map(client => [client.id, client])
-      );
-
-      const updatedClients = {};
-
-      Object.keys(laneStatuses).forEach(lane => {
-        const container = this.swimlanes[lane].current;
-
-        updatedClients[lane] = Array.from(container.children)
-          .map(element => {
-            const client = clientsById.get(element.dataset.id);
-
-            return {
-              ...client,
-              status: laneStatuses[lane],
-            };
-          });
-      });
-
-      // Restore DOM before React updates the card order.
-      this.drake.cancel();
-
-      this.setState({
-        clients: updatedClients,
-      });
+    this.drake = Dragula(containers, {
+      moves: () => !this.state.saving,
     });
+
+    this.drake.on('drop', this.handleDrop);
+
+    // Load stored clients from the backend.
+    this.fetchClients();
   }
 
   componentWillUnmount() {
+    this.isMountedFlag = false;
+
     if (this.drake) {
       this.drake.destroy();
+      this.drake = null;
     }
   }
 
-  getClients() {
-    return [
-      ['1','Stark, White and Abbott','Cloned Optimal Architecture', 'in-progress'],
-      ['2','Wiza LLC','Exclusive Bandwidth-Monitored Implementation', 'complete'],
-      ['3','Nolan LLC','Vision-Oriented 4Thgeneration Graphicaluserinterface', 'backlog'],
-      ['4','Thompson PLC','Streamlined Regional Knowledgeuser', 'in-progress'],
-      ['5','Walker-Williamson','Team-Oriented 6Thgeneration Matrix', 'in-progress'],
-      ['6','Boehm and Sons','Automated Systematic Paradigm', 'backlog'],
-      ['7','Runolfsson, Hegmann and Block','Integrated Transitional Strategy', 'backlog'],
-      ['8','Schumm-Labadie','Operative Heuristic Challenge', 'backlog'],
-      ['9','Kohler Group','Re-Contextualized Multi-Tasking Attitude', 'backlog'],
-      ['10','Romaguera Inc','Managed Foreground Toolset', 'backlog'],
-      ['11','Reilly-King','Future-Proofed Interactive Toolset', 'complete'],
-      ['12','Emard, Champlin and Runolfsdottir','Devolved Needs-Based Capability', 'backlog'],
-      ['13','Fritsch, Cronin and Wolff','Open-Source 3Rdgeneration Website', 'complete'],
-      ['14','Borer LLC','Profit-Focused Incremental Orchestration', 'backlog'],
-      ['15','Emmerich-Ankunding','User-Centric Stable Extranet', 'in-progress'],
-      ['16','Willms-Abbott','Progressive Bandwidth-Monitored Access', 'in-progress'],
-      ['17','Brekke PLC','Intuitive User-Facing Customerloyalty', 'complete'],
-      ['18','Bins, Toy and Klocko','Integrated Assymetric Software', 'backlog'],
-      ['19','Hodkiewicz-Hayes','Programmable Systematic Securedline', 'backlog'],
-      ['20','Murphy, Lang and Ferry','Organized Explicit Access', 'backlog'],
-    ].map(companyDetails => ({
-      id: companyDetails[0],
-      name: companyDetails[1],
-      description: companyDetails[2],
-      status: companyDetails[3],
-    }));
+  // Convert an API response into three ordered lanes.
+  groupClients(clients) {
+    const grouped = {
+      backlog: [],
+      inProgress: [],
+      complete: [],
+    };
+
+    clients.forEach(client => {
+      if (client.status === STATUSES.backlog) {
+        grouped.backlog.push(client);
+      } else if (client.status === STATUSES.inProgress) {
+        grouped.inProgress.push(client);
+      } else if (client.status === STATUSES.complete) {
+        grouped.complete.push(client);
+      }
+    });
+
+    Object.keys(grouped).forEach(lane => {
+      grouped[lane].sort(
+        (a, b) => a.priority - b.priority || a.id - b.id
+      );
+    });
+
+    return grouped;
   }
+
+  // GET: Load saved card positions from SQLite.
+  async fetchClients() {
+    try {
+      const response = await fetch(API_URL);
+
+      if (!response.ok) {
+        throw new Error('Failed to load shipping requests.');
+      }
+
+      const clients = await response.json();
+
+      if (!this.isMountedFlag) return;
+
+      this.setState({
+        clients: this.groupClients(clients),
+        loading: false,
+        saving: false,
+        error: null,
+      });
+    } catch (error) {
+      if (!this.isMountedFlag) return;
+
+      this.setState({
+        loading: false,
+        saving: false,
+        error: error.message,
+      });
+    }
+  }
+
+  // Find the lane containing a specific DOM container.
+  getLaneKey(container) {
+    const keys = Object.keys(this.swimlanes);
+
+    return keys.find(
+      key => this.swimlanes[key].current === container
+    );
+  }
+
+  // PUT: Save a card's new status and priority.
+  async updateClient(id, status, priority) {
+    const response = await fetch(`${API_URL}/${id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        status,
+        priority,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Failed to update card position.');
+    }
+
+    return response.json();
+  }
+
+  // Handle dragging within or between swimlanes.
+  async handleDrop(element, target, source) {
+    if (!target || !source) return;
+
+    const targetLane = this.getLaneKey(target);
+
+    if (!targetLane) return;
+
+    const clientId = Number(element.dataset.id);
+
+    const cards = Array.from(target.children);
+
+    const targetIndex = cards.indexOf(element);
+
+    if (targetIndex === -1) return;
+
+    const newPriority = targetIndex + 1;
+    const newStatus = STATUSES[targetLane];
+
+    // Restore DOM ownership to React before updating state.
+    if (this.drake) {
+      this.drake.cancel(true);
+    }
+
+    this.setState({
+      saving: true,
+      error: null,
+    });
+
+    try {
+      // Persist the change to the backend.
+      const updatedClients = await this.updateClient(
+        clientId,
+        newStatus,
+        newPriority
+      );
+
+      if (!this.isMountedFlag) return;
+
+      // Render the confirmed state from the server.
+      this.setState({
+        clients: this.groupClients(updatedClients),
+        saving: false,
+        error: null,
+      });
+    } catch (error) {
+      if (!this.isMountedFlag) return;
+
+      this.setState({
+        saving: false,
+        error: error.message,
+      });
+
+      // Restore the latest saved server state.
+      await this.fetchClients();
+    }
+  }
+
   renderSwimlane(name, clients, ref) {
     return (
-      <Swimlane name={name} clients={clients} dragulaRef={ref}/>
+      <Swimlane
+        name={name}
+        clients={clients}
+        dragulaRef={ref}
+      />
     );
   }
 
   render() {
+    const {
+      clients,
+      loading,
+      saving,
+      error,
+    } = this.state;
+
     return (
       <div className="Board">
+        {loading && (
+          <p>Loading shipping requests...</p>
+        )}
+
+        {saving && (
+          <p>Saving card position...</p>
+        )}
+
+        {error && (
+          <p role="alert" style={{ color: 'red' }}>
+            {error}
+          </p>
+        )}
+
         <div className="container-fluid">
           <div className="row">
             <div className="col-md-4">
-              {this.renderSwimlane('Backlog', this.state.clients.backlog, this.swimlanes.backlog)}
+              {this.renderSwimlane(
+                'Backlog',
+                clients.backlog,
+                this.swimlanes.backlog
+              )}
             </div>
+
             <div className="col-md-4">
-              {this.renderSwimlane('In Progress', this.state.clients.inProgress, this.swimlanes.inProgress)}
+              {this.renderSwimlane(
+                'In Progress',
+                clients.inProgress,
+                this.swimlanes.inProgress
+              )}
             </div>
+
             <div className="col-md-4">
-              {this.renderSwimlane('Complete', this.state.clients.complete, this.swimlanes.complete)}
+              {this.renderSwimlane(
+                'Complete',
+                clients.complete,
+                this.swimlanes.complete
+              )}
             </div>
           </div>
         </div>

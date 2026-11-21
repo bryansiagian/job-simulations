@@ -24,6 +24,61 @@ export default class Board extends React.Component {
       complete: React.createRef(),
     }
   }
+
+  componentDidMount() {
+    const containers = [
+      this.swimlanes.backlog.current,
+      this.swimlanes.inProgress.current,
+      this.swimlanes.complete.current,
+    ];
+
+    this.drake = Dragula(containers);
+
+    this.drake.on('drop', () => {
+      const laneStatuses = {
+        backlog: 'backlog',
+        inProgress: 'in-progress',
+        complete: 'complete',
+      };
+
+      const allClients = Object.values(this.state.clients)
+        .reduce((result, clients) => result.concat(clients), []);
+
+      const clientsById = new Map(
+        allClients.map(client => [client.id, client])
+      );
+
+      const updatedClients = {};
+
+      Object.keys(laneStatuses).forEach(lane => {
+        const container = this.swimlanes[lane].current;
+
+        updatedClients[lane] = Array.from(container.children)
+          .map(element => {
+            const client = clientsById.get(element.dataset.id);
+
+            return {
+              ...client,
+              status: laneStatuses[lane],
+            };
+          });
+      });
+
+      // Restore DOM before React updates the card order.
+      this.drake.cancel();
+
+      this.setState({
+        clients: updatedClients,
+      });
+    });
+  }
+
+  componentWillUnmount() {
+    if (this.drake) {
+      this.drake.destroy();
+    }
+  }
+
   getClients() {
     return [
       ['1','Stark, White and Abbott','Cloned Optimal Architecture', 'in-progress'],
